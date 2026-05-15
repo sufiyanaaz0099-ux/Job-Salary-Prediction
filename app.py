@@ -1,109 +1,49 @@
-# =========================
-# IMPORT LIBRARIES
-# =========================
 import streamlit as st
-import pickle
-import pandas as pd
 
-# =========================
-# LOAD FILES
-# =========================
-model = pickle.load(open("knn_model.pkl", "rb"))
-scaler = pickle.load(open("scaler.pkl", "rb"))
-columns = pickle.load(open("columns.pkl", "rb"))
+# 1. Setup
+st.set_page_config(page_title="Salary App", layout="centered")
 
-# =========================
-# HELPER: EXTRACT OPTIONS FROM TRAINED COLUMNS
-# =========================
-def get_options(prefix):
-    opts = [col.replace(prefix, "") for col in columns if col.startswith(prefix)]
-    opts = sorted(list(set(opts)))
-    return opts
+# 2. Logic to handle the page switch manually
+if "page" not in st.session_state:
+    st.session_state.page = "login"
 
-# Extract all possible options
-job_options = get_options("job_title_")
-edu_options = get_options("education_level_")
-loc_options = get_options("location_")
-ind_options = get_options("industry_")
-company_options = get_options("company_size_")
-remote_options = get_options("remote_work_")
+# --- LOGIN PAGE ---
+if st.session_state.page == "login":
+    st.title("Login / Signup")
+    option = st.radio("Choose Option", ["Login", "Signup"])
 
-# Add baseline category (lost due to drop_first=True)
-job_options = ["Other"] + job_options
-edu_options = ["Other"] + edu_options
-loc_options = ["Other"] + loc_options
-ind_options = ["Other"] + ind_options
-company_options = ["Other"] + company_options
-remote_options = ["Other"] + remote_options
+    if option == "Login":
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
 
-# =========================
-# TITLE
-# =========================
-st.title("💼 Salary Prediction App (KNN Improved)")
+        if st.button("Login"):
+            if username == "admin" and password == "1234":
+                st.success("Login Successful!")
+                # Switch the internal state
+                st.session_state.page = "predictor"
+                st.rerun()
+            else:
+                st.error("Wrong Username or Password")
 
-# =========================
-# USER INPUT
-# =========================
-exp = st.number_input("Experience (years)", 0, 30)
-skills = st.number_input("Skills Count", 0, 50)
-cert = st.number_input("Certifications", 0, 20)
+    else:
+        new_user = st.text_input("Create Username")
+        new_pass = st.text_input("Create Password", type="password")
+        confirm_pass = st.text_input("Confirm Password", type="password")
 
-job = st.selectbox("Job Role", job_options)
-edu = st.selectbox("Education", edu_options)
-loc = st.selectbox("Location", loc_options)
-ind = st.selectbox("Industry", ind_options)
-company = st.selectbox("Company Size", company_options)
-remote = st.selectbox("Remote Work", remote_options)
+        if st.button("Signup"):
+            if new_pass == confirm_pass:
+                st.success("Account Created!")
+                st.session_state.page = "predictor"
+                st.rerun()
+            else:
+                st.error("Passwords do not match")
 
-# =========================
-# CREATE INPUT
-# =========================
-input_dict = {
-    "experience_years": exp,
-    "skills_count": skills,
-    "certifications": cert,
-    "job_title": job,
-    "education_level": edu,
-    "location": loc,
-    "industry": ind,
-    "company_size": company,
-    "remote_work": remote
-}
-
-input_df = pd.DataFrame([input_dict])
-
-# =========================
-# FEATURE ENGINEERING
-# =========================
-input_df['exp_squared'] = input_df['experience_years'] ** 2
-input_df['skill_per_exp'] = input_df['skills_count'] / (input_df['experience_years'] + 1)
-input_df['cert_per_skill'] = input_df['certifications'] / (input_df['skills_count'] + 1)
-
-input_df['seniority'] = pd.cut(
-    input_df['experience_years'],
-    bins=[0, 2, 5, 10, 20],
-    labels=['Fresher', 'Junior', 'Mid', 'Senior']
-)
-
-# =========================
-# DUMMIES + ALIGN
-# =========================
-input_df = pd.get_dummies(input_df)
-input_df = input_df.reindex(columns=columns, fill_value=0)
-
-# =========================
-# SCALE
-# =========================
-num_cols = ['experience_years', 'skills_count', 'certifications',
-            'exp_squared', 'skill_per_exp', 'cert_per_skill']
-
-input_df[num_cols] = scaler.transform(input_df[num_cols])
-
-# =========================
-# PREDICTION
-# =========================
-if st.button("Predict Salary"):
-    prediction = model.predict(input_df)
-    st.success(f"💰 Predicted Salary: {int(prediction[0])}")
-    st.balloons()
+# --- REDIRECT TO PREDICTOR ---
+elif st.session_state.page == "predictor":
+    st.info("Redirecting you to the Predictor...")
+    # This is the "Manual Link" that bypasses the registry bug
+    st.page_link("pages/Salary_Predictor.py", label="Click here to open Predictor 💰", icon="🚀")
     
+    if st.button("Back to Login"):
+        st.session_state.page = "login"
+        st.rerun()
