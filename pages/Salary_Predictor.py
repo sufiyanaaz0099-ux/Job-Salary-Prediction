@@ -106,3 +106,10 @@ if st.button("Predict Salary"):
     prediction = model.predict(input_df)
     st.success(f"💰 Predicted Salary: {int(prediction[0])}")
     st.balloons()
+# ... (Keep all your existing ML/Prediction code above) ...
+
+st.write("---") # Adds a line to separate the predictor from logout
+
+if st.button("Log Out"):
+    # This sends them back to the main login page
+    st.switch_page("app.py")
