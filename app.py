@@ -1,49 +1,52 @@
 import streamlit as st
 
-# 1. Setup
 st.set_page_config(page_title="Salary App", layout="centered")
 
-# 2. Logic to handle the page switch manually
-if "page" not in st.session_state:
-    st.session_state.page = "login"
+# 1. Initialize "Database" in memory so signups work during this session
+if "user_db" not in st.session_state:
+    st.session_state.user_db = {"admin": "1234"} # Default user
 
-# --- LOGIN PAGE ---
-if st.session_state.page == "login":
-    st.title("Login / Signup")
-    option = st.radio("Choose Option", ["Login", "Signup"])
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-    if option == "Login":
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+# --- LOGOUT LOGIC ---
+def logout():
+    st.session_state.authenticated = False
+    st.rerun()
 
+# --- AUTHENTICATION UI ---
+if not st.session_state.authenticated:
+    st.title("AAC Salary Predictor")
+    tab1, tab2 = st.tabs(["Login", "Signup"])
+
+    with tab1:
+        u_login = st.text_input("Username", key="l_user")
+        p_login = st.text_input("Password", type="password", key="l_pass")
         if st.button("Login"):
-            if username == "admin" and password == "1234":
-                st.success("Login Successful!")
-                # Switch the internal state
-                st.session_state.page = "predictor"
-                st.rerun()
+            if u_login in st.session_state.user_db and st.session_state.user_db[u_login] == p_login:
+                st.session_state.authenticated = True
+                st.rerun() # This handles the "Automatic Redirect"
             else:
-                st.error("Wrong Username or Password")
+                st.error("Invalid Username or Password")
 
-    else:
-        new_user = st.text_input("Create Username")
-        new_pass = st.text_input("Create Password", type="password")
-        confirm_pass = st.text_input("Confirm Password", type="password")
-
+    with tab2:
+        u_signup = st.text_input("Create Username", key="s_user")
+        p_signup = st.text_input("Create Password", type="password", key="s_pass")
         if st.button("Signup"):
-            if new_pass == confirm_pass:
-                st.success("Account Created!")
-                st.session_state.page = "predictor"
-                st.rerun()
+            if u_signup:
+                st.session_state.user_db[u_signup] = p_signup
+                st.success("Account created! Now go to the Login tab.")
             else:
-                st.error("Passwords do not match")
+                st.warning("Please enter a username")
 
-# --- REDIRECT TO PREDICTOR ---
-elif st.session_state.page == "predictor":
-    st.info("Redirecting you to the Predictor...")
-    # This is the "Manual Link" that bypasses the registry bug
-    st.page_link("pages/Salary_Predictor.py", label="Click here to open Predictor 💰", icon="🚀")
+# --- POST-LOGIN PAGE ---
+else:
+    st.title("Dashboard")
+    st.success(f"Welcome back!")
     
-    if st.button("Back to Login"):
-        st.session_state.page = "login"
-        st.rerun()
+    # The Redirect Link
+    st.page_link("pages/Salary_Predictor.py", label="Open Salary Predictor", icon="💰")
+    
+    # The Logout Button
+    if st.button("Log Out"):
+        logout()
